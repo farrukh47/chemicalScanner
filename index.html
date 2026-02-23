@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1BAB5A">
+  <title>Chemical Scanner</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet"  href="style_loadingscreen.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Global spinner -->
+    <div id="global-spinner" class="hidden">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Audio element for camera shutter sound -->
+    <audio id="shutter-sound" preload="auto" style="display: none;"></audio>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="screen active">
+      <div class="loading-container">
+        <div class="loading-icon"><i class="fas fa-flask"></i></div>
+        <h1>Chemical Scanner</h1>
+        <p>Ready to scan chemical labels</p>
+        <div class="success-spacer"></div>
+        <button id="scan-btn" class="btn btn-primary scan-button">
+          <i class="fas fa-camera"></i> Scan
+        </button>
+      </div>
+    </div>
+
+    <!-- Camera Screen -->
+    <div id="camera-screen" class="screen">
+      <div class="status-bar">
+        <div class="title">Scan Chemical Label</div>
+      </div>
+      <div class="camera-container">
+        <video id="camera-video" autoplay playsinline muted webkit-playsinline></video>
+        <canvas id="camera-canvas" style="display:none;"></canvas>
+
+        <div class="camera-overlay">
+          <div class="scan-frame">
+            <div class="scan-corners">
+              <div class="corner top-left"></div>
+              <div class="corner top-right"></div>
+              <div class="corner bottom-left"></div>
+              <div class="corner bottom-right"></div>
+            </div>
+            <div class="scan-line"></div>
+          </div>
+        </div>
+
+        <!-- Recording timer -->
+        <div class="recording-timer" id="recording-timer" style="display: none;">
+          <i class="fas fa-circle recording-dot"></i>
+          <span id="timer-text">0:00</span>
+        </div>
+
+        <div class="camera-controls">
+          <div class="camera-buttons">
+            <button id="flash-btn" class="camera-control-btn" title="Flash">
+              <i class="fas fa-bolt"></i>
+            </button>
+            <button id="capture-btn" class="capture-button" title="Capture">
+              <i class="fas fa-camera" id="capture-icon"></i>
+            </button>
+            <button id="mode-toggle-btn" class="camera-control-btn" title="Toggle Photo/Video Mode">
+              <i class="fas fa-sync-alt" id="mode-toggle-icon"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image / Video Preview Screen -->
+    <div id="image-preview-screen" class="screen">
+      <div class="status-bar">
+        <div class="title" id="preview-title">Preview Image</div>
+      </div>
+      <div class="preview-content">
+        <div class="preview-image-container">
+          <img id="preview-image" alt="Captured image preview" style="display: none;">
+          <video id="preview-video" controls alt="Recorded video preview" style="display: none;"></video>
+        </div>
+        <div class="preview-instructions">
+          <p id="preview-instructions-text">Review your captured image. Is the text clear and readable?</p>
+        </div>
+      </div>
+      <div class="action-bar">
+        <button id="retake-photo-btn" class="btn btn-outline" style="flex: 1;"><i class="fas fa-camera"></i> <span id="retake-text">Retake</span></button>
+        <button id="process-ocr-btn" class="btn btn-primary" style="flex: 1;"><i class="fas fa-text-width"></i> <span>OCR</span></button>
+        <button id="rotate-btn" class="btn btn-outline" title="Rotate 90deg clockwise" style="flex: 1;"><i class="fas fa-redo"></i> <span>Rotate</span></button>
+      </div>
+    </div>
+
+    <!-- Processing Screen -->
+    <div id="processing-screen" class="screen">
+      <div class="status-bar">
+        <div class="title">Processing</div>
+      </div>
+      <div class="processing-container">
+        <div class="processing-spinner"></div>
+        <h2>Analyzing Chemical Label</h2>
+        <p>Extracting text and chemical information...</p>
+      </div>
+    </div>
+
+    <!-- Text Review Screen -->
+    <div id="text-review-screen" class="screen">
+      <div class="status-bar">
+        <div class="title">Review Text</div>
+      </div>
+      <div class="content-container">
+        <div class="preview-container">
+          <img id="captured-preview" alt="Captured image">
+        </div>
+        <div class="text-input-container">
+          <label for="extracted-text">Extracted Text</label>
+          <textarea id="extracted-text" class="text-input" placeholder="Text will appear here..." readonly></textarea>
+        </div>
+      </div>
+      <div class="action-bar">
+        <button id="retake-btn" class="btn btn-outline"><i class="fas fa-camera"></i> <span>Retake</span></button>
+        <button id="process-text-btn" class="btn btn-primary"><i class="fas fa-arrow-right"></i> <span>Continue</span></button>
+      </div>
+    </div>
+
+    <!-- Data Review Screen -->
+    <div id="data-review-screen" class="screen">
+      <div class="status-bar">
+        <div class="title">Chemical Information</div>
+      </div>
+      <div class="content-container">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="chemical-name">Chemical Name</label>
+            <input type="text" id="chemical-name" placeholder="e.g., Sodium Chloride">
+          </div>
+          <div class="form-group">
+            <label for="concentration">Concentration/Purity</label>
+            <input type="text" id="concentration" placeholder="e.g., 99%, solid">
+          </div>
+          <div class="form-group">
+            <label for="container-size">Container Size</label>
+            <input type="text" id="container-size" placeholder="e.g., 500g">
+          </div>
+          <div class="form-group">
+            <label for="approximate-quantity">Approximate Quantity</label>
+            <input type="text" id="approximate-quantity" placeholder="e.g., 500g">
+          </div>
+          <div class="form-group">
+            <label for="order-date">Order Date</label>
+            <input type="text" id="order-date" placeholder="e.g., Sep 2025">
+          </div>
+          <div class="form-group">
+            <label for="flinn-chemical-family">Flinn Chemical Family</label>
+            <input type="text" id="flinn-chemical-family" placeholder="e.g., Inorganic #1, Organic #2">
+          </div>
+          <div class="form-group">
+            <label for="hazard-labels">Hazard Labels</label>
+            <input type="text" id="hazard-labels" placeholder="e.g., Flammable, Corrosive">
+          </div>
+          <div class="form-group">
+            <label for="hazard-classification-primary">Hazard Classification (Primary)</label>
+            <input type="text" id="hazard-classification-primary" placeholder="e.g., Corrosive">
+          </div>
+          <div class="form-group">
+            <label for="hazard-classification-secondary">Hazard Classification (Secondary)</label>
+            <input type="text" id="hazard-classification-secondary" placeholder="e.g., Toxic, Irritant">
+          </div>
+          <div class="form-group">
+            <label for="storage-room-number">Storage Room #</label>
+            <input type="text" id="storage-room-number" placeholder="e.g., Room 102">
+          </div>
+          <div class="form-group">
+            <label for="cabinet-number">Cabinet #</label>
+            <input type="text" id="cabinet-number" placeholder="e.g., Cabinet 3">
+          </div>
+          <div class="form-group">
+            <label for="shelf-number">Shelf #</label>
+            <input type="text" id="shelf-number" placeholder="e.g., Shelf 2">
+          </div>
+          <div class="form-group">
+            <label for="planned-disposal-year">Planned Disposal Year</label>
+            <input type="text" id="planned-disposal-year" placeholder="e.g., 2026">
+          </div>
+          <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" placeholder="Additional notes or observations from the label"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="user-notes">User Notes</label>
+            <textarea id="user-notes" placeholder="Your additional notes or observations"></textarea>
+          </div>
+          <div class="form-group form-group-checkbox">
+            <label for="marked-for-removal">
+              <input type="checkbox" id="marked-for-removal">
+              Marked For Removal
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="processed-text">Processed Text</label>
+            <textarea id="processed-text" class="text-input" readonly></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="action-bar">
+        <button id="back-btn" class="btn btn-outline"><i class="fas fa-arrow-left"></i> <span>Back</span></button>
+        <button id="submit-btn" class="btn btn-primary"><i class="fas fa-check"></i> <span>Submit</span></button>
+      </div>
+    </div>
+
+    <!-- Success Screen -->
+    <div id="success-screen" class="screen">
+      <div class="success-container">
+        <div class="success-icon"><i class="fas fa-check"></i></div>
+        <h2>Successfully Saved!</h2>
+        <p>Your chemical data has been saved to Google Sheets</p>
+        <div class="success-spacer"></div>
+        <button id="new-scan-btn" class="btn btn-primary"><i class="fas fa-camera"></i> Scan Another</button>
+      </div>
+    </div>
+
+    <!-- Error Screen -->
+    <div id="error-screen" class="screen">
+      <div class="error-container">
+        <div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <h2 id="error-title">Oops! Something went wrong</h2>
+        <p id="error-message">Don't worry, these things happen. Please try again or start over.</p>
+        <div class="error-spacer"></div>
+        <div class="error-actions">
+          <button id="retry-btn" class="btn btn-primary"><i class="fas fa-redo"></i> Try Again</button>
+          <button id="home-btn" class="btn btn-outline"><i class="fas fa-home"></i> Restart</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Modal -->
+    <div id="stats-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Application Stats</h3>
+          <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="stats-grid">
+            <div class="stat-card"><i class="fas fa-database"></i>
+              <h4>Total Entries</h4>
+              <p id="stat-total">0</p>
+            </div>
+            <div class="stat-card"><i class="fas fa-sync"></i>
+              <h4>Last Update</h4>
+              <p id="stat-last">-</p>
+            </div>
+          </div>
+          <div class="api-status">
+            <h4>API Status</h4>
+            <p id="api-status"><i class="fas fa-circle"></i> Checking...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
